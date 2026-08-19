@@ -1,392 +1,177 @@
-# IRIS AI Agent
+# IRIS AI Agent – Working Prototype
 
-## 1. Overview
+A standalone AI Agent prototype for the IRIS CMS. The existing IRIS ASP.NET MVC 5 / .NET Framework 4.8 application is not modified.
 
-IRIS AI Agent is a standalone .NET 9 prototype that provides a natural-language interface to controlled IRIS banking/card capabilities.
+## Architecture
 
-The prototype uses:
+```text
+User
+  |
+  v
+IRIS AI Agent (.NET 9)
+  |
+  +-- Agent orchestration / conversation state
+  |
+  +-- Tool layer
+  |     +-- get_customer
+  |     +-- get_card_status
+  |     +-- create_card
+  |
+  +-- Ollama HTTP API
+          |
+          v
+       Qwen3:4b
+          |
+          v
+   Optional IRIS REST APIs
+          |
+          v
+       IRIS CMS
+```
 
-- ASP.NET Core / .NET 9
-- Ollama as the local LLM runtime
-- Qwen3:4b as the language model
-- Tool calling for controlled business operations
-- Session-based conversation state
-- Demo adapters for safe presentation/testing
+The prototype keeps AI concerns outside the existing IRIS application. Tools are the controlled boundary between the agent and IRIS.
 
-The existing IRIS CMS application remains outside the AI service and is treated as the authoritative business/data layer.
-
-## 2. Prototype Capabilities
-
-The prototype demonstrates:
-
-1. Natural-language user interaction
-2. LLM-based intent understanding
-3. Native Ollama/Qwen3 tool calling
-4. Tool execution by application code
-5. Multi-turn conversation state
-6. Customer lookup
-7. Card status lookup
-8. Card creation workflow
-9. Missing-information collection
-10. Demo-mode business execution
-
-Example:
-
-    User
-      ↓
-    AI Agent
-      ↓
-    Qwen3:4b
-      ↓
-    Tool selection
-      ↓
-    Tool Executor
-      ↓
-    Demo IRIS capability
-      ↓
-    Tool result
-      ↓
-    Qwen3:4b
-      ↓
-    Final response
-
-## 3. Architecture
-
-    ┌──────────────────┐
-    │       User       │
-    └────────┬─────────┘
-             │ Natural language
-             ▼
-    ┌─────────────────────────┐
-    │     IRIS AI Agent       │
-    │         .NET 9          │
-    │                         │
-    │ Agent Orchestrator      │
-    │ Conversation State      │
-    │ Tool Executor           │
-    └───────────┬─────────────┘
-                │
-        ┌───────┴────────┐
-        │                │
-        ▼                ▼
-    ┌─────────┐     ┌─────────────┐
-    │ Ollama  │     │ IRIS Tools  │
-    │ Qwen3   │     │ Demo Adapter│
-    │  :4b    │     └──────┬──────┘
-    └─────────┘            │
-                           ▼
-                    Existing IRIS CMS
-                    (future/live adapter)
-                           │
-                           ▼
-                         Oracle
-
-The AI service does not connect directly to Oracle.
-
-## 4. Prerequisites
-
-### Required
+## Prerequisites
 
 - Windows/Linux/macOS
 - .NET 9 SDK
 - Ollama
-- Qwen3:4b model
-- Git
+- Qwen3:4b
 
-Verify .NET:
+## 1. Start Ollama
 
-    dotnet --version
-
-Verify Ollama:
-
-    ollama --version
-
-## 5. Install and Configure Ollama
-
-Install Ollama for your operating system.
-
-Then pull the model:
-
-    ollama pull qwen3:4b
+```bash
+ollama pull qwen3:4b
+ollama run qwen3:4b
+```
 
 Verify:
 
-    ollama list
+```bash
+curl http://localhost:11434/api/tags
+```
 
-You should see:
+## 2. Run the agent
 
-    qwen3:4b
+From the repository root:
 
-Verify the Ollama API:
+```bash
+dotnet restore
+dotnet run
+```
 
-    curl http://localhost:11434/api/tags
+The API starts on:
 
-## 6. Clone the Repository
+```text
+http://localhost:5099
+```
 
-    git clone <YOUR-GITHUB-REPOSITORY-URL>
-    cd IrisAI-Agent
+## 3. Health check
 
-## 7. Configure the Application
+```bash
+curl http://localhost:5099/health
+```
 
-Review `appsettings.json`.
+Expected:
 
-Example:
+```json
+{"status":"healthy","ollama":"connected"}
+```
 
-    {
-      "Ollama": {
-        "BaseUrl": "http://localhost:11434",
-        "Model": "qwen3:4b"
-      },
-      "IrisApi": {
-        "Enabled": false
-      }
-    }
+## 4. Chat with the agent
 
-### Demo mode
+```bash
+curl -X POST http://localhost:5099/api/agent/chat ^
+  -H "Content-Type: application/json" ^
+  -d "{\"message\":\"What is the card status for customer 123456789?\"}"
+```
 
-For the submitted prototype, keep:
+The agent can use the `get_card_status` tool.
 
-    "IrisApi": {
-      "Enabled": false
-    }
+## 5. Card creation demo
 
-This prevents accidental changes to a real IRIS environment and allows the complete agent/tool workflow to be demonstrated safely.
+First request:
 
-The tools return clearly marked demo results.
+```json
+{
+  "message": "I want to create a card for customer 123456789 using product 9961"
+}
+```
 
-## 8. Build and Run
+The agent should collect the required information and ask for confirmation before creation.
 
-From the project directory:
+Continue using the returned `sessionId`:
 
-    dotnet restore
-    dotnet clean
-    dotnet build
-    dotnet run
+```json
+{
+  "sessionId": "<returned-session-id>",
+  "message": "confirm"
+}
+```
 
-The API will start on the URL displayed by ASP.NET Core.
+In demo mode the `create_card` tool returns a simulated card ID. No production IRIS data is changed.
 
-## 9. Health Check
+## 6. Connect to IRIS
 
-Use:
+The prototype contains an `IrisApiClient` adapter. Set:
 
-    GET /health
+```json
+"IrisApi": {
+  "Enabled": true,
+  "BaseUrl": "http://localhost:8080/IRIS5-CLONE-CMSAPI",
+  "Endpoints": {
+    "GetCustomer": "<your endpoint>",
+    "GetCardStatus": "<your endpoint>",
+    "CreateCard": "<your endpoint>"
+  }
+}
+```
 
-Expected result:
+Do not expose Oracle directly to the agent. The agent should call controlled IRIS APIs, which continue to enforce existing business rules, validation and authorization.
 
-    {
-      "status": "healthy",
-      "ollama": "connected"
-    }
+## Tool safety
 
-## 10. Chat Endpoint
+- Tool arguments are validated by application code.
+- Card creation is blocked until explicit confirmation is received.
+- The model is instructed not to invent identifiers or product codes.
+- Demo mode is enabled by default.
+- Existing IRIS business logic remains the system of record.
 
-Use:
+## Prototype scope
 
-    POST /api/agent/chat
+Implemented:
 
-Example request:
-
-    {
-      "sessionId": "",
-      "message": "What is the card status for customer 123456789?"
-    }
-
-The agent should select:
-
-    get_card_status
-
-and return a response similar to:
-
-    {
-      "sessionId": "...",
-      "message": "Customer 123456789's card status is Active.",
-      "toolUsed": true,
-      "toolName": "get_card_status",
-      "toolResult": {
-        "success": true,
-        "source": "demo",
-        "customerId": "123456789",
-        "cardStatus": "Active"
-      }
-    }
-
-## 11. Card Creation Demonstration
-
-Start a new conversation:
-
-    {
-      "sessionId": "",
-      "message": "I want to create a card for customer 123456789 using product 9961."
-    }
-
-The agent may first verify the customer and/or request missing information.
-
-Provide:
-
-    Name on card: John Doe
-    Delivery branch: Main Branch
-
-The agent should collect the required fields and require confirmation before the write operation.
-
-Use the same `sessionId` for subsequent messages.
-
-Example:
-
-    {
-      "sessionId": "<SESSION_ID>",
-      "message": "Confirm"
-    }
-
-The demo tool returns a simulated card creation result such as:
-
-    {
-      "success": true,
-      "source": "demo",
-      "cardId": "DEMO-...",
-      "customerId": "123456789",
-      "productCode": "9961",
-      "nameOnCard": "John Doe",
-      "deliveryBranch": "Main Branch"
-    }
-
-## 12. Tool Calling
-
-The prototype exposes controlled business tools rather than allowing the LLM to execute arbitrary HTTP requests or SQL.
-
-Current prototype tools include:
-
-- `get_customer`
-- `get_card_status`
-- `create_card`
-
-The LLM selects a tool; application code validates and executes it.
-
-The LLM does not receive database credentials and does not directly access Oracle.
-
-## 13. Project Structure
-
-    IrisAI-Agent/
-    ├── Models/
-    ├── Services/
-    ├── Tools/
-    ├── Program.cs
-    ├── appsettings.json
-    └── README.md
-
-Key components:
-
-- `AgentService` — agent orchestration and conversation loop
-- `OllamaClient` — communication with Ollama
-- `ConversationStore` — session state
-- `IrisTools` — controlled business tools
-- `IrisApiClient` — boundary for future live IRIS API integration
-
-## 14. Existing IRIS Integration
-
-The prototype intentionally keeps the existing IRIS CMS separate.
-
-The intended production flow is:
-
-    IRIS AI Agent
-          ↓
-    IRIS REST API
-          ↓
-    Existing IRIS business services
-          ↓
-    Existing repositories
-          ↓
-    Oracle
-
-The prototype currently uses a demo adapter.
-
-A production deployment should enable the IRIS API adapter only after authentication, authorization, validation, audit logging, and environment-specific configuration are implemented and tested.
-
-## 15. Security Considerations
-
-The prototype follows these principles:
-
-- No direct LLM-to-database access
-- No arbitrary SQL generated by the model
-- No arbitrary URL execution
-- Controlled tool definitions
-- Application-side argument validation
-- Explicit confirmation for sensitive write operations
-- Demo mode by default
-- No credentials committed to source control
-
-## 16. Limitations
-
-This is a working prototype, not a production banking deployment.
-
-Current limitations include:
-
-- Demo tool data
-- In-memory conversation state
-- No production identity provider integration
-- No distributed session store
-- No production audit trail
-- No rate limiting
-- No RAG/knowledge base
-- No MCP server
-- No multi-agent orchestration
-
-## 17. Future Roadmap
-
-### Phase 1 — Prototype
-
+- Standalone AI Agent API
+- Local Ollama/Qwen3 integration
+- Conversation sessions
+- Function/tool calling
+- Customer lookup tool
+- Card status tool
+- Create-card tool with confirmation gate
+- Optional IRIS REST adapter
+- Health endpoint
+- Demo-safe mode
+
+Future:
+
+- Persistent conversation store
+- Authentication/authorization integration
+- Audit trail
+- More IRIS tools
+- MCP server
+- RAG over IRIS documentation
+- Observability and metrics
+- Production deployment
+
+## Technology
+
+- ASP.NET Core / .NET 9
+- C#
 - Ollama
 - Qwen3:4b
-- Agent orchestration
-- Tool calling
-- Conversation state
-- Demo tools
+- REST
+- System.Text.Json
 
-### Phase 2 — IRIS Integration
+## Submission note
 
-- Connect tools to existing IRIS APIs
-- Authentication
-- Authorization
-- Audit logging
-- Production error handling
-
-### Phase 3 — Enterprise Agent
-
-- Persistent conversation state
-- Redis/SQL-backed state
-- Observability
-- RAG
-- Knowledge/document retrieval
-
-### Phase 4 — Standardized Tool Integration
-
-- MCP server
-- Reusable IRIS tools
-- Multiple AI clients/agents
-
-### Phase 5 — Advanced Agent Architecture
-
-- Workflow orchestration
-- Specialized agents
-- Human-in-the-loop approvals
-- Advanced monitoring and governance
-
-## 18. Submission Demo
-
-Recommended demonstration sequence:
-
-1. Start Ollama.
-2. Verify `qwen3:4b`.
-3. Start the AI Agent.
-4. Call `/health`.
-5. Ask for a customer's card status.
-6. Show that the agent selects `get_card_status`.
-7. Start a card creation request.
-8. Show customer verification.
-9. Provide missing information.
-10. Confirm the card creation.
-11. Show the controlled `create_card` tool execution.
-12. Show the simulated result.
-
-## 19. License / Internal Prototype
-
-This repository is intended as a prototype/demo submission for the IRIS AI Agent initiative.
+This is intentionally a separate agent service. The existing IRIS CMS is not modified by this prototype.

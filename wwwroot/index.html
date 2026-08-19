@@ -1,0 +1,125 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+
+    <title>IRIS AI Agent</title>
+
+    <link rel="stylesheet" href="/css/chat.css" />
+</head>
+
+<body>
+
+    <div class="app">
+
+        <header class="header">
+
+    <div class="brand-area">
+
+        <div class="logo">
+            IRIS
+        </div>
+
+        <div>
+            <div class="brand">
+                IRIS AI Agent
+            </div>
+
+            <div class="subtitle">
+                Banking & Card Assistant
+            </div>
+        </div>
+
+    </div>
+
+    <div class="status">
+
+        <span
+            id="statusDot"
+            class="status-dot">
+        </span>
+
+        <span id="statusText">
+            Checking...
+        </span>
+
+    </div>
+
+</header>
+
+        <main class="chat-container">
+
+            <div id="messages" class="messages">
+
+                <div class="message assistant">
+                    <div class="avatar">
+                        AI
+                    </div>
+
+                    <div class="bubble">
+                        <div class="message-title">
+                            IRIS AI Agent
+                        </div>
+
+                        <div>
+                            Hello! I can help you with IRIS banking and
+                            card-related requests.
+                        </div>
+
+                        <div class="examples">
+                            <button onclick="useExample('What is the card status for customer 123456789?')">
+                                Check card status
+                            </button>
+
+                            <button onclick="useExample('I want to create a card for customer 123456789 using product 9961.')">
+                                Create a card
+                            </button>
+                        </div>
+                    </div>
+                </div>
+
+            </div>
+
+            <div id="typing" class="typing hidden">
+                <span></span>
+                <span></span>
+                <span></span>
+                <label>IRIS AI is thinking...</label>
+            </div>
+
+        </main>
+
+        <footer class="composer">
+
+            <div class="input-wrapper">
+
+                <textarea
+                    id="messageInput"
+                    rows="1"
+                    placeholder="Ask IRIS AI something..."
+                    autocomplete="off"></textarea>
+
+                <button
+                    id="sendButton"
+                    type="button"
+                    onclick="sendMessage()">
+
+                    <span>➤</span>
+
+                </button>
+
+            </div>
+
+            <div class="footer-text">
+                IRIS AI Agent • Local Ollama + Qwen3:4b
+            </div>
+
+        </footer>
+
+    </div>
+
+    <script src="/js/chat.js"></script>
+
+</body>
+</html>
