@@ -3,123 +3,86 @@
 <head>
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-
     <title>IRIS AI Agent</title>
-
     <link rel="stylesheet" href="/css/chat.css" />
 </head>
-
 <body>
-
-    <div class="app">
-
-        <header class="header">
-
-    <div class="brand-area">
-
-        <div class="logo">
-            IRIS
-        </div>
-
-        <div>
-            <div class="brand">
-                IRIS AI Agent
+    <div class="app-shell">
+        <header class="topbar">
+            <a class="brand-area" href="/" aria-label="IRIS AI Agent home">
+                <span class="logo-mark" aria-hidden="true"><span></span><span></span><span></span></span>
+                <span class="brand-copy"><strong>IRIS</strong><span>AI Agent</span></span>
+            </a>
+            <div class="topbar-context">
+                <div class="context-copy"><span>Banking Operations</span><small>Card servicing workspace</small></div>
+                <div class="status" aria-live="polite"><span id="statusDot" class="status-dot"></span><span id="statusText">Checking connection</span></div>
+                <button id="logsButton" type="button" class="hdr-btn" aria-label="View diagnostics log"><span aria-hidden="true">◍</span><span class="hdr-label">Diagnostics</span><span id="logsBadge" class="hdr-badge hidden">0</span></button>
+                <button id="newSessionButton" type="button" class="hdr-btn" aria-label="Start a new session"><span aria-hidden="true">＋</span><span class="hdr-label">New session</span></button>
             </div>
+        </header>
 
-            <div class="subtitle">
-                Banking & Card Assistant
+        <aside id="logsPanel" class="logs-panel hidden" aria-label="Diagnostics log" aria-hidden="true">
+            <div class="logs-head">
+                <div><strong>Diagnostics</strong><small id="logsMeta">No events recorded</small></div>
+                <div class="logs-tools">
+                    <button id="logsRefresh" type="button" title="Refresh">Refresh</button>
+                    <button id="logsClear" type="button" title="Clear">Clear</button>
+                    <button id="logsClose" type="button" title="Close" aria-label="Close">✕</button>
+                </div>
             </div>
-        </div>
+            <div id="logsList" class="logs-list"></div>
+        </aside>
+        <div id="logsScrim" class="logs-scrim hidden"></div>
 
-    </div>
-
-    <div class="status">
-
-        <span
-            id="statusDot"
-            class="status-dot">
-        </span>
-
-        <span id="statusText">
-            Checking...
-        </span>
-
-    </div>
-
-</header>
-
-        <main class="chat-container">
-
-            <div id="messages" class="messages">
-
-                <div class="message assistant">
-                    <div class="avatar">
-                        AI
+        <main class="workspace">
+            <section class="chat-panel" aria-label="IRIS AI conversation">
+                <div class="chat-heading">
+                    <div>
+                        <p class="eyebrow">ASSISTED SERVICE</p>
+                        <h1>How can I help today?</h1>
+                        <p>Find customers, review accounts and cards, look up reference data, and prepare debit-card requests.</p>
                     </div>
-
-                    <div class="bubble">
-                        <div class="message-title">
-                            IRIS AI Agent
-                        </div>
-
-                        <div>
-                            Hello! I can help you with IRIS banking and
-                            card-related requests.
-                        </div>
-
-                        <div class="examples">
-                            <button onclick="useExample('What is the card status for customer 123456789?')">
-                                Check card status
-                            </button>
-
-                            <button onclick="useExample('I want to create a card for customer 123456789 using product 9961.')">
-                                Create a card
-                            </button>
-                        </div>
-                    </div>
+                    <div class="security-note"><span class="lock" aria-hidden="true">⌑</span><span>Protected session</span></div>
                 </div>
 
-            </div>
+                <div id="messages" class="messages"></div>
 
-            <div id="typing" class="typing hidden">
-                <span></span>
-                <span></span>
-                <span></span>
-                <label>IRIS AI is thinking...</label>
-            </div>
+                <template id="welcomeTpl">
+                    <div class="message assistant">
+                        <div class="avatar" aria-hidden="true">IA</div>
+                        <div class="bubble">
+                            <div class="message-title"><span>IRIS AI</span></div>
+                            <div class="bubble-body">Hello. Start by identifying a customer with their CNIC, then create a card or review their accounts and cards. Use the quick actions below the message box, or just type your request.</div>
+                        </div>
+                    </div>
+                </template>
 
+                <div id="typing" class="typing hidden" aria-live="polite"><span></span><span></span><span></span><label>IRIS AI is working on it</label></div>
+            </section>
         </main>
 
-        <footer class="composer">
-
-            <div class="input-wrapper">
-
-                <textarea
-                    id="messageInput"
-                    rows="1"
-                    placeholder="Ask IRIS AI something..."
-                    autocomplete="off"></textarea>
-
-                <button
-                    id="sendButton"
-                    type="button"
-                    onclick="sendMessage()">
-
-                    <span>➤</span>
-
-                </button>
-
+        <footer class="composer-area">
+            <div class="composer">
+                <div class="quick-actions" role="toolbar" aria-label="Quick actions">
+                    <button type="button" class="qa" onclick="useExample('Find customer with CNIC ')"><span aria-hidden="true">⌕</span>Find by CNIC</button>
+                    <button type="button" class="qa" onclick="useExample('Find customer named ')"><span aria-hidden="true">☑</span>Find by name</button>
+                    <button type="button" class="qa" onclick="useExample('I want to create a debit card', true)"><span aria-hidden="true">+</span>New card</button>
+                    <button type="button" class="qa qa-danger" onclick="useExample('cancel', true)"><span aria-hidden="true">✕</span>Cancel request</button>
+                    <button type="button" class="qa" onclick="useExample('List the customer cards')"><span aria-hidden="true">▦</span>Customer cards</button>
+                    <button type="button" class="qa" onclick="useExample('Show card ')"><span aria-hidden="true">◉</span>Card by id</button>
+                    <button type="button" class="qa" onclick="useExample('List the customer accounts')"><span aria-hidden="true">▤</span>Accounts</button>
+                    <button type="button" class="qa" onclick="useExample('List card products', true)"><span aria-hidden="true">◈</span>Products</button>
+                    <button type="button" class="qa" onclick="useExample('List branches', true)"><span aria-hidden="true">⌂</span>Branches</button>
+                    <button type="button" class="qa" onclick="useExample('List currencies', true)"><span aria-hidden="true">¤</span>Currencies</button>
+                </div>
+                <div class="input-wrapper">
+                    <textarea id="messageInput" rows="1" placeholder="Ask about a customer, account, or card request..." autocomplete="off" aria-label="Message IRIS AI"></textarea>
+                    <button id="sendButton" type="button" onclick="sendMessage()" aria-label="Send message"><span aria-hidden="true">↑</span></button>
+                </div>
+                <div class="composer-footer"><span><b>Enter</b> to send &nbsp;·&nbsp; <b>Shift + Enter</b> for a new line</span><span>IRIS AI uses approved IRIS data sources</span></div>
             </div>
-
-            <div class="footer-text">
-                IRIS AI Agent • Local Ollama + Qwen3:4b
-            </div>
-
         </footer>
-
     </div>
-
     <script src="/js/chat.js"></script>
-
 </body>
 </html>
